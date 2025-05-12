@@ -1,0 +1,25 @@
+{
+  "name": "agency_cms",
+  "version": "1.0.0",
+  "description": "Cms software for an insuarance agency",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Joshckh/agency_cms.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Joshckh/agency_cms/issues"
+  },
+  "homepage": "https://github.com/Joshckh/agency_cms#readme",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  }
+}
