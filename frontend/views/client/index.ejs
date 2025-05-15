@@ -1,0 +1,11 @@
+<h1>Clients List</h1>
+<ul>
+  <% clients.forEach(client => { %>
+  <li>
+    <%= client.name %> - <%= client.email %>
+    <button><a href="/client/<%= client.id %>/edit">Edit</a></button>
+  </li>
+  <% }) %>
+</ul>
+
+<a href="/client/new">Add Client</a>
