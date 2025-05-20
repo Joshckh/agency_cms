@@ -2,10 +2,14 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 
-router.get("/test", async (req, res) => {
+router.get("/", async (req, res) => {
+  let login = false;
   try {
-    const result = await pool.query("SELECT NOW()");
-    res.json({ time: result.rows[0] });
+    if (login === false) {
+      res.redirect("/auth/login");
+    } else {
+      res.redirect("/client");
+    }
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");

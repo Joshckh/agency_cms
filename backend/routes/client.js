@@ -71,4 +71,23 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/:id/delete", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const confirm = await pool.query("SELECT * FROM clients WHERE id = $1", [
+      id,
+    ]);
+    if (confirm.rows.length === 0) {
+      return res.status(404).render("404", { message: "Client not found." });
+    }
+
+    await pool.query("DELETE FROM clients WHERE id = $1", [id]);
+    res.redirect("/client");
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
 module.exports = router;
