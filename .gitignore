@@ -7,4 +7,3 @@ node_modules/
 # Logs and system files
 npm-debug.log*
 .DS_Store
-/backend/script

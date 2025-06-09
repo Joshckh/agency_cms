@@ -1,0 +1,35 @@
+<h1>Hello, <%= user.name %></h1>
+
+<% if (policies.length > 0) { %>
+<ul>
+  <% policies.forEach(policy => { %>
+  <li>
+    <%= policy.policy_type %> - <%= policy.client_name %>
+    <button><a href="/policy/<%= policy.id %>/edit">Edit</a></button>
+
+    <!-- Delete form -->
+    <form
+      action="/policy/<%= policy.id %>/delete"
+      method="POST"
+      onsubmit="return confirmDelete(event)"
+    >
+      <button type="submit">🗑️ Delete</button>
+    </form>
+
+    <!-- Status toggle form -->
+    <form action="/policy/<%= policy.id %>/toggle-status" method="POST">
+      <% if (policy.status === 'active') { %>
+      <button type="submit" name="status" value="deactivate">Deactivate</button>
+      <% } else { %>
+      <button type="submit" name="status" value="activate">Activate</button>
+      <% } %>
+    </form>
+  </li>
+  <% }) %>
+</ul>
+<% } else { %>
+<p>No policies found.</p>
+<% } %>
+
+<a href="/policy/create">new</a>
+<a href="/dashboard/<%= user.role %>">dashboard</a>

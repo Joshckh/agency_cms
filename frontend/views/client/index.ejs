@@ -14,8 +14,10 @@
   </li>
   <% }) %>
 </ul>
+<%= JSON.stringify(user); %>
 
 <a href="/client/new">Add Client</a>
+<a href="/dashboard/<%= user.role %>">dashboard</a>
 
 <script>
   function confirmDelete(event) {

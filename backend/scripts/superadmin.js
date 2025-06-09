@@ -3,8 +3,8 @@ const bcrypt = require("bcrypt");
 
 async function createSuperAdmin() {
   const name = "Super Admin";
-  const email = "admin@admin.com";
-  const password = "testing123!";
+  const email = "test";
+  const password = "test";
   const role = "superadmin";
 
   try {

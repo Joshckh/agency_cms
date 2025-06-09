@@ -1,7 +1,6 @@
 const express = require("express");
 const path = require("path");
 const session = require("express-session");
-const bcrypt = require("bcrypt");
 require("dotenv").config();
 
 const app = express();
@@ -36,10 +35,14 @@ const mainRoutes = require("./routes");
 const clientsRouter = require("./routes/client");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashboard");
+const policyRoutes = require("./routes/policy");
+const superadminRoutes = require("./routes/superadmin");
 
 app.use("/auth", authRoutes);
 app.use("/client", clientsRouter);
 app.use("/dashboard", dashboardRoutes);
+app.use("/policy", policyRoutes);
+app.use("/superadmin", superadminRoutes);
 app.use("/", mainRoutes);
 
 // ========== 404 Handler ==========

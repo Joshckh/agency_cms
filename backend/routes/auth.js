@@ -49,4 +49,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Session destroy error:", err);
+      return res.status(500).send("Logout failed");
+    }
+    res.redirect("/login"); // Or wherever your login page is
+  });
+});
+
 module.exports = router;

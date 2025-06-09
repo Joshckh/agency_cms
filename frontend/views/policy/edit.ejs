@@ -1,0 +1,43 @@
+
+<div class="container">
+  <h1>Edit Policy</h1>
+
+  <form action="/policy/<%= policy.id %>/update" method="POST">
+    <!-- Select Client Dropdown -->
+    <div class="mb-3">
+      <label for="client_id">Client:</label>
+      <select id="client_id" name="client_id" class="form-control">
+        <% clients.forEach(client => { %>
+          <option value="<%= client.id %>" <%= policy.client_id === client.id ? 'selected' : '' %>><%= client.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <!-- Policy Type Input -->
+    <div class="mb-3">
+      <label for="policy_type">Policy Type:</label>
+      <input type="text" id="policy_type" name="policy_type" value="<%= policy.policy_type %>" required class="form-control"/>
+    </div>
+
+    <!-- Start Date Input -->
+    <div class="mb-3">
+      <label for="start_date">Start Date:</label>
+      <input type="date" id="start_date" name="start_date" value="<%- policy.start_date %>" required class="form-control"/>
+    </div>
+
+    <!-- End Date Input -->
+    <div class="mb-3">
+      <label for="end_date">End Date:</label>
+      <input type="date" id="end_date" name="end_date" value="<%- policy.end_date %>" required class="form-control"/>
+    </div>
+
+    <!-- Premium Amount Input -->
+    <div class="mb-3">
+      <label for="premium">Premium:</label>
+      <input type="number" step="0.01" id="premium" name="premium" value="<%= policy.premium %>" required class="form-control"/>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="btn btn-primary">Update Policy</button>
+  </form>
+</div>
