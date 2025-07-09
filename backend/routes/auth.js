@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 const bcrypt = require("bcrypt");
-
 // Login page
 router.get("/login", (req, res) => {
   res.render("auth/login");
@@ -13,32 +13,32 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
+    const userResult = await prisma.users.findFirst({
+      where: {
+        email,
+      },
+    });
 
-    if (userResult.rows.length === 0) {
+    if (!userResult) {
       return res.status(400).send("Invalid email or password");
     }
 
-    const user = userResult.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    const isMatch = await bcrypt.compare(password, userResult.password_hash);
 
     if (!isMatch) {
       return res.status(400).send("Invalid email or password");
     }
 
     req.session.user = {
-      id: user.id,
-      name: user.name,
-      role: user.role,
+      id: userResult.id,
+      name: userResult.name,
+      role: userResult.role,
     };
 
     // Redirect based on role
-    if (user.role === "superadmin") {
+    if (userResult.role === "superadmin") {
       res.redirect("/dashboard/superadmin");
-    } else if (user.role === "admin") {
+    } else if (userResult.role === "admin") {
       res.redirect("/dashboard/admin");
     } else {
       res.redirect("/dashboard/agent");

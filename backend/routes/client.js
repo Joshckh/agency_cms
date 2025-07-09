@@ -1,111 +1,135 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+const { ensureAuthenticated } = require("../middleware/auth");
 
-// GET /clients - get all clients
-router.get("/", async (req, res) => {
+// GET /clients - List all clients for the authenticated user
+router.get("/", ensureAuthenticated, async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM clients ORDER BY id");
-    res.render("client/index", { clients: result.rows });
+    const clients = await prisma.clients.findMany({
+      where: { user_id: req.session.user.id },
+      orderBy: { id: "asc" },
+    });
+    res.render("client/index", {
+      user: req.session.user,
+      clients: clients || [],
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    console.error("Client list error:", err);
+    res.status(500).render("error", { message: "Failed to load clients" });
   }
 });
 
-router.get("/:id/edit", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query("SELECT * FROM clients WHERE id = $1", [
-      id,
-    ]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).render("404", { message: "Client not found." });
-    }
-
-    res.render("client/edit", { client: result.rows[0] });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
-  }
+// GET /clients/new - Show client creation form
+router.get("/new", ensureAuthenticated, (req, res) => {
+  res.render("client/new", { user: req.session.user });
 });
 
-router.post("/:id/edit", async (req, res) => {
+// POST /clients - Create new client
+router.post("/", ensureAuthenticated, async (req, res) => {
   try {
-    const { id } = req.params;
-    const confirm = await pool.query("SELECT * FROM clients WHERE id = $1", [
-      id,
-    ]);
-
-    if (confirm.rows.length === 0) {
-      return res.status(404).render("404", { message: "Client not found." });
-    }
     const { name, email, phone, address } = req.body;
-    const result = await pool.query(
-      "UPDATE clients SET name = $1, email = $2, phone = $3, address = $4 WHERE id = $5 RETURNING *",
-      [name, email, phone, address, id]
-    );
+
+    const client = await prisma.clients.create({
+      data: {
+        name,
+        email,
+        phone,
+        address,
+        user_id: req.session.user.id,
+      },
+    });
+
     res.redirect("/client");
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    console.error("Client creation error:", err);
+    res.status(500).render("error", {
+      message: "Failed to create client",
+      user: req.session.user,
+    });
   }
 });
 
-router.get("/new", (req, res) => {
-  res.render("client/new");
-});
-
-router.post("/", async (req, res) => {
+// GET /clients/:id/edit - Show client edit form
+router.get("/:id/edit", ensureAuthenticated, async (req, res) => {
   try {
-    // Check if user session exists
-    const user_id =
-      req.session && req.session.user ? req.session.user.id : null;
+    const client = await prisma.clients.findUnique({
+      where: { id: parseInt(req.params.id) },
+    });
 
-    if (!user_id) {
-      return res.status(401).json({ error: "Unauthorized" });
+    if (!client || client.user_id !== req.session.user.id) {
+      return res.status(404).render("404", { user: req.session.user });
     }
-    const { name, email, phone, address } = req.body;
-    console.log("Trying to insert client:", {
-      name,
-      email,
-      phone,
-      address,
-      user_id,
-    }); // Console log the data being added
-    const result = await pool.query(
-      "INSERT INTO clients (name, email, phone, address ,user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [name, email, phone, address, user_id]
-    );
-    res.json(result.rows[0]);
+
+    res.render("client/edit", {
+      user: req.session.user,
+      client,
+    });
   } catch (err) {
-    console.error(err.message);
-    if (err.code === "undefined_column") {
-      return res
-        .status(500)
-        .json({ error: 'Column "user_id" does not exist in table "clients"' });
-    }
-    res.status(500).send("Server error");
+    console.error("Edit form error:", err);
+    res.status(500).render("error", {
+      message: "Failed to load edit form",
+      user: req.session.user,
+    });
   }
 });
 
-router.post("/:id/delete", async (req, res) => {
+// POST /clients/:id/edit - Update client
+router.post("/:id/edit", ensureAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, address } = req.body;
+
+    // Verify client exists and belongs to user
+    const existingClient = await prisma.clients.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!existingClient || existingClient.user_id !== req.session.user.id) {
+      return res.status(404).render("404", { user: req.session.user });
+    }
+
+    await prisma.clients.update({
+      where: { id: parseInt(id) },
+      data: { name, email, phone, address },
+    });
+
+    res.redirect("/client");
+  } catch (err) {
+    console.error("Client update error:", err);
+    res.status(500).render("error", {
+      message: "Failed to update client",
+      user: req.session.user,
+    });
+  }
+});
+
+// POST /clients/:id/delete - Delete client
+router.post("/:id/delete", ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const confirm = await pool.query("SELECT * FROM clients WHERE id = $1", [
-      id,
-    ]);
-    if (confirm.rows.length === 0) {
-      return res.status(404).render("404", { message: "Client not found." });
+    // Verify client exists and belongs to user
+    const client = await prisma.clients.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!client || client.user_id !== req.session.user.id) {
+      return res.status(404).render("404", { user: req.session.user });
     }
 
-    await pool.query("DELETE FROM clients WHERE id = $1", [id]);
+    await prisma.clients.delete({
+      where: { id: parseInt(id) },
+    });
+
     res.redirect("/client");
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    console.error("Client deletion error:", err);
+    res.status(500).render("error", {
+      message: "Failed to delete client",
+      user: req.session.user,
+    });
   }
 });
 

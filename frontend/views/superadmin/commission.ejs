@@ -1,0 +1,37 @@
+<h2>Create New Commission Rate</h2>
+<form action="/superadmin/commission-rates" method="POST">
+  <label for="rankId">Rank:</label><br />
+  <select name="rankId" id="rankId" required>
+    <% ranks.forEach(rank => { %>
+    <option value="<%= rank.id %>"><%= rank.role_name %></option>
+    <% }) %></select
+  ><br /><br />
+
+  <label for="policyType">Policy Type:</label><br />
+  <input type="text" name="policyType" id="policyType" required /><br /><br />
+
+  <label for="rate">Commission Rate (%):</label><br />
+  <input type="number" name="rate" id="rate" step="0.01" required /><br /><br />
+
+  <button type="submit">Add Commission Rate</button>
+</form>
+
+<a href="/dashboard/superadmin">Home</a>
+
+<hr />
+
+<h2>Existing Commission Rates</h2>
+<table border="1">
+  <tr>
+    <th>Rank</th>
+    <th>Policy Type</th>
+    <th>Rate (%)</th>
+  </tr>
+  <% commissionRates.forEach(rate => { %>
+  <tr>
+    <td><%= rate.ranks.role_name %></td>
+    <td><%= rate.policy_type %></td>
+    <td><%= rate.rate %></td>
+  </tr>
+  <% }) %>
+</table>

@@ -1,29 +1,33 @@
-const pool = require("../db");
+const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
 
+const prisma = new PrismaClient();
 async function createSuperAdmin() {
   const name = "Super Admin";
-  const email = "test";
-  const password = "test";
+  const email = "asd";
+  const password = "asd";
   const role = "superadmin";
 
   try {
-    const existing = await pool.query(
-      "SELECT * FROM users WHERE role = 'superadmin'"
-    );
+    const existing = await prisma.users.findFirst({
+      where: { role: "superadmin" },
+    });
 
-    if (existing.rows.length > 0) {
+    if (existing) {
       console.log("Superadmin already exists. Aborting...");
       return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool.query(
-      "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4)",
-      [name, email, hashedPassword, role]
-    );
-
+    await prisma.users.create({
+      data: {
+        name,
+        email,
+        password_hash: hashedPassword,
+        role,
+      },
+    });
     console.log("Superadmin created!");
   } catch (err) {
     console.error("Error creating superadmin:", err);

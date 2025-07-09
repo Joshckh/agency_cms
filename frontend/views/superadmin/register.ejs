@@ -6,7 +6,13 @@
     <label for="role">Role:</label>
     <select name="role" id="role" required>
         <option value="admin">Admin</option>
-        <option value="user">User</option>
+        <option value="agent">Agent</option>
+    </select>
+    <label for="rank_id">Rank:</label>
+    <select name="rank_id" id="rank_id" required>
+        <% ranks.forEach(rank => { %>
+            <option value="<%= rank.id %>"><%= rank.role_name %></option>
+        <% }); %>
     </select>
     <button type="submit">Register</button>
 </form>

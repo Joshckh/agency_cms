@@ -1,0 +1,19 @@
+<form action="/superadmin/edit-user/<%= user.id %>" method="POST">
+    <label for="name">Name:</label><input type="text" name="name" value="<%= user.name %>" required></br>
+    <label for="email">Email:</label><input type="email" name="email" value="<%= user.email %>" required></br>
+    <label for="password">Password:</label><input type="password" name="password"></br> <!-- Consider adding a toggle to show/hide password -->
+    <label for="role">Role:</label>
+    <select name="role" id="role" required>
+        <% roles.forEach(role => { %>
+            <option value="<%= role.value %>" <%= (user.role === role.value) ? 'selected' : '' %>><%= role.text %></option>
+        <% }); %>
+    </select>
+    <label for="rank_id">Rank:</label>
+    <select name="rank_id" id="rank_id" required>
+        <% ranks.forEach(rank => { %>
+            <option value="<%= rank.id %>" <%= (user.rank_id === rank.id) ? 'selected' : '' %>><%= rank.role_name %></option>
+        <% }); %>
+    </select>
+    <button type="submit">Update User</button>
+</form>
+

@@ -14,7 +14,13 @@
 
   <div class="form-group">
     <label for="policy_type">Policy Type:</label>
-    <input type="text" name="policy_type" id="policy_type" required />
+    <select name="policy_type" id="policy_type" required>
+      <% policyTypes.forEach(function(type) { %>
+      <option value="<%= type %>"><%= type %></option>
+      <% }); %>
+    </select>
+  </div>
+  
   </div>
 
   <div class="form-group">
