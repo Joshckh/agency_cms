@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
@@ -19,7 +20,7 @@ router.get("/register", async (req, res) => {
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role, rankId } = req.body;
+    const { name, email, password, role, rankId, recruiterId } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await prisma.users.create({
@@ -29,6 +30,7 @@ router.post("/register", async (req, res) => {
         password_hash: hashedPassword,
         role,
         rank_id: parseInt(rankId),
+        recruiter_id: recruiterId ? parseInt(recruiterId) : 1, // default to agency
       },
     });
     res.redirect("/dashboard/superadmin");
@@ -93,13 +95,17 @@ router.get("/commission-rates", async (req, res) => {
 
 router.post("/commission-rates", async (req, res) => {
   try {
-    const { rankId, policyType, rate } = req.body;
+    const { rankId, policyType, primaryRate, secondaryRate } = req.body;
+    if (!rankId || !policyType || isNaN(primaryRate) || isNaN(secondaryRate)) {
+      return res.status(400).send("Missing or invalid fields");
+    }
 
     await prisma.commission_rates.create({
       data: {
         rank_id: parseInt(rankId),
         policy_type: policyType,
-        rate: parseFloat(rate),
+        primary_rate: parseFloat(primaryRate),
+        secondary_rate: parseFloat(secondaryRate),
       },
     });
 
@@ -118,11 +124,29 @@ router.get("/users", async (req, res) => {
     if (query) {
       users = await prisma.users.findMany({
         where: {
-          OR: [{ name: { contains: query } }, { email: { contains: query } }],
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { email: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          status: true,
+          can_login: true,
         },
       });
     } else {
-      users = await prisma.users.findMany();
+      users = await prisma.users.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          status: true,
+          can_login: true,
+        },
+      });
     }
 
     res.render("superadmin/users", { users, query });
@@ -136,11 +160,17 @@ router.post("/users/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
-    await prisma.users.delete({ where: { id } });
+    await prisma.users.update({
+      where: { id },
+      data: {
+        status: "inactive",
+        can_login: false,
+      },
+    });
 
     res.redirect("/superadmin/users");
   } catch (err) {
-    console.error(err);
+    console.error("User delete error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -156,7 +186,12 @@ router.get("/edit-user/:id", async (req, res) => {
       select: { id: true, role_name: true },
     });
 
-    res.render("superadmin/editUser", { user, ranks });
+    const roles = [
+      { value: "agent", text: "Agent" },
+      { value: "admin", text: "Admin" },
+    ];
+
+    res.render("superadmin/editUser", { user, ranks, roles });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -199,4 +234,29 @@ router.post("/edit-user/:id", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+// ✅ Toggle user activation status (MUST be outside any other route)
+router.post("/users/:id/toggle-status", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const user = await prisma.users.findUnique({ where: { id } });
+
+    const newStatus = user.status === "active" ? "inactive" : "active";
+    const newLoginAbility = newStatus === "active";
+
+    await prisma.users.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        can_login: newLoginAbility,
+      },
+    });
+
+    res.redirect("/superadmin/users");
+  } catch (err) {
+    console.error("Toggle user status error:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;

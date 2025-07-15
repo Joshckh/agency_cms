@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum CommissionType {
+  primary
+  secondary
+}
+
+
 model activity_logs {
   id          Int       @id @default(autoincrement())
   user_id     Int?
@@ -29,11 +35,13 @@ model clients {
 }
 
 model commission_rates {
-  id          Int     @id @default(autoincrement())
-  rank_id     Int
-  policy_type String  @db.VarChar(50)
-  rate        Decimal @db.Decimal(5, 2)
-  ranks       ranks   @relation(fields: [rank_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id              Int      @id @default(autoincrement())
+  rank_id         Int
+  policy_type     String   @db.VarChar(50)
+  primary_rate    Decimal?  @db.Decimal(5, 2)
+  secondary_rate  Decimal?  @db.Decimal(5, 2)
+
+  ranks           ranks    @relation(fields: [rank_id], references: [id], onDelete: NoAction)
 
   @@unique([rank_id, policy_type], map: "unique_rank_policy")
 }
@@ -44,6 +52,7 @@ model commissions {
   policy_id  Int?
   amount     Decimal?  @db.Decimal(10, 2)
   created_at DateTime? @default(now()) @db.Timestamp(6)
+  commission_type CommissionType @default(primary)
   policies   policies? @relation(fields: [policy_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -105,6 +114,11 @@ model users {
   commissions   commissions[]
   leads         leads[]
   policies      policies[]
+  status        String         @default("active")
+  can_login     Boolean @default(true)
+  recruiter_id  Int? @default(1)
+  recruiter      users?    @relation("UserRecruiter", fields: [recruiter_id], references: [id])
+  recruits       users[]   @relation("UserRecruiter")
   ranks         ranks?          @relation(fields: [rank_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([rank_id], map: "idx_users_rank_id")

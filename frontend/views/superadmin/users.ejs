@@ -20,13 +20,15 @@
         <a href="/superadmin/edit-user/<%= user.id %>" class="btn btn-primary"
           >Edit</a
         >
+
         <form
-          action="/superadmin/users/<%= user.id %>"
+          action="/superadmin/users/<%= user.id %>/toggle-status"
           method="POST"
-          style="display: inline-block"
+          style="display: inline"
         >
-          <input type="hidden" name="_method" value="DELETE" />
-          <button type="submit" class="btn btn-danger">Delete</button>
+          <button type="submit" class="btn btn-warning">
+            <%= user.status === "active" ? "Deactivate" : "Activate" %>
+          </button>
         </form>
       </td>
     </tr>

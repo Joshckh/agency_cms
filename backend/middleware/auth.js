@@ -1,25 +1,23 @@
-// backend/middleware/auth.js
 function ensureAuthenticated(req, res, next) {
-  if (!req.session.user) {
-    return res.redirect("/auth/login");
+  // Publicly accessible routes
+  const publicRoutes = ["/login", "/logout", "/register"];
+
+  if (
+    publicRoutes.includes(req.path) ||
+    req.path.startsWith("/public") || // static files
+    req.path.startsWith("/css") ||
+    req.path.startsWith("/js")
+  ) {
+    return next();
   }
-  next();
+
+  // Allow access if session is active
+  if (req.session && req.session.user) {
+    return next();
+  }
+
+  // Redirect to login if not authenticated
+  return res.redirect("/auth/login");
 }
 
-function ensureAdmin(req, res, next) {
-  if (!req.session.user) return res.redirect("/auth/login");
-  if (!["admin", "superadmin"].includes(req.session.user.role)) {
-    return res.status(403).send("Access denied");
-  }
-  next();
-}
-
-function ensureSuperadmin(req, res, next) {
-  if (!req.session.user) return res.redirect("/auth/login");
-  if (req.session.user.role !== "superadmin") {
-    return res.status(403).send("Only Superadmin allowed");
-  }
-  next();
-}
-
-module.exports = { ensureAuthenticated, ensureAdmin, ensureSuperadmin };
+module.exports = { ensureAuthenticated };

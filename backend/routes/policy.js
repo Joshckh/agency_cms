@@ -1,12 +1,17 @@
+// backend/routes/policy.js
 const express = require("express");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { ensureAuthenticated } = require("../middleware/auth");
+const {
+  calculateCommission,
+  distributeImmediateCommissions,
+  distributeRecursiveCommissions,
+} = require("../services/commissonAdder");
 
-// Helper function
-const calculateCommission = (premium, rate) =>
-  (premium * parseFloat(rate)) / 100;
+// Utility: Choose your preferred commission strategy here
+const distributeCommissions = distributeRecursiveCommissions; // or distributeImmediateCommissions
 
 // List all policies
 router.get("/", ensureAuthenticated, async (req, res) => {
@@ -28,16 +33,12 @@ router.get("/", ensureAuthenticated, async (req, res) => {
 router.get("/create", ensureAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.id;
-
-    // Get user and their rank
     const user = await prisma.users.findUnique({ where: { id: userId } });
 
-    // Get commission rates based on user rank
     const commissionRates = await prisma.commission_rates.findMany({
       where: { rank_id: user.rank_id },
     });
 
-    // Get all clients for this agent
     const clients = await prisma.clients.findMany({
       where: { user_id: userId },
     });
@@ -52,6 +53,47 @@ router.get("/create", ensureAuthenticated, async (req, res) => {
     res
       .status(500)
       .render("error", { message: "Failed to load creation form" });
+  }
+});
+
+// Create new policy + commissions
+router.post("/create", ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    const { client_id, policy_type, start_date, end_date, premium } = req.body;
+
+    const client = await prisma.clients.findUnique({
+      where: { id: parseInt(client_id) },
+    });
+
+    if (!client || client.user_id !== userId) {
+      return res
+        .status(403)
+        .render("error", { message: "Unauthorized client selection" });
+    }
+
+    const newPolicy = await prisma.policies.create({
+      data: {
+        client_id: parseInt(client_id),
+        user_id: userId,
+        policy_type,
+        start_date: new Date(start_date),
+        end_date: new Date(end_date),
+        premium: parseFloat(premium),
+      },
+    });
+
+    await distributeCommissions(
+      userId,
+      newPolicy.id,
+      parseFloat(premium),
+      policy_type
+    );
+
+    res.redirect("/policy");
+  } catch (err) {
+    console.error("Policy creation error:", err);
+    res.status(500).render("error", { message: "Failed to create policy" });
   }
 });
 
@@ -78,24 +120,21 @@ router.get("/:id/edit", ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Update policy
+// Update policy and recalculate commissions
 router.post("/:id/update", ensureAuthenticated, async (req, res) => {
   try {
-    const { client_id, policy_type, start_date, end_date, premium } = req.body;
     const policyId = parseInt(req.params.id);
+    const { client_id, policy_type, start_date, end_date, premium } = req.body;
 
-    // Verify client belongs to user
     const client = await prisma.clients.findUnique({
       where: { id: parseInt(client_id) },
     });
-
     if (!client || client.user_id !== req.session.user.id) {
       return res
         .status(403)
         .render("error", { message: "Unauthorized client selection" });
     }
 
-    // Update policy
     await prisma.policies.update({
       where: { id: policyId },
       data: {
@@ -107,27 +146,14 @@ router.post("/:id/update", ensureAuthenticated, async (req, res) => {
       },
     });
 
-    // Update commission if rate exists
-    const rate = await prisma.commission_rates.findFirst({
-      where: {
-        rank_id: req.session.user.rank_id,
-        policy_type,
-      },
-    });
-
-    if (rate) {
-      await prisma.commissions.upsert({
-        where: { policy_id: policyId },
-        update: {
-          amount: calculateCommission(parseFloat(premium), rate.rate),
-        },
-        create: {
-          user_id: req.session.user.id,
-          policy_id: policyId,
-          amount: calculateCommission(parseFloat(premium), rate.rate),
-        },
-      });
-    }
+    // Delete old commissions and recalculate fresh ones
+    await prisma.commissions.deleteMany({ where: { policy_id: policyId } });
+    await distributeCommissions(
+      req.session.user.id,
+      policyId,
+      parseFloat(premium),
+      policy_type
+    );
 
     res.redirect("/policy");
   } catch (err) {
@@ -136,14 +162,13 @@ router.post("/:id/update", ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Delete policy
+// Delete policy and its commissions
 router.post("/:id/delete", ensureAuthenticated, async (req, res) => {
   try {
+    const policyId = parseInt(req.params.id);
     await prisma.$transaction([
-      prisma.commissions.deleteMany({
-        where: { policy_id: parseInt(req.params.id) },
-      }),
-      prisma.policies.delete({ where: { id: parseInt(req.params.id) } }),
+      prisma.commissions.deleteMany({ where: { policy_id: policyId } }),
+      prisma.policies.delete({ where: { id: policyId } }),
     ]);
     res.redirect("/policy");
   } catch (err) {
@@ -174,56 +199,4 @@ router.post("/:id/toggle-status", ensureAuthenticated, async (req, res) => {
   }
 });
 
-router.post("/create", ensureAuthenticated, async (req, res) => {
-  try {
-    const userId = req.session.user.id;
-    const { client_id, policy_type, start_date, end_date, premium } = req.body;
-
-    // Verify client belongs to user
-    const client = await prisma.clients.findUnique({
-      where: { id: parseInt(client_id) },
-    });
-
-    if (!client || client.user_id !== userId) {
-      return res
-        .status(403)
-        .render("error", { message: "Unauthorized client selection" });
-    }
-
-    // Create policy
-    const newPolicy = await prisma.policies.create({
-      data: {
-        client_id: parseInt(client_id),
-        user_id: userId,
-        policy_type,
-        start_date: new Date(start_date),
-        end_date: new Date(end_date),
-        premium: parseFloat(premium),
-      },
-    });
-
-    // Create commission if rate exists
-    const rate = await prisma.commission_rates.findFirst({
-      where: {
-        rank_id: req.session.user.rank_id,
-        policy_type,
-      },
-    });
-
-    if (rate) {
-      await prisma.commissions.create({
-        data: {
-          user_id: userId,
-          policy_id: newPolicy.id,
-          amount: calculateCommission(parseFloat(premium), rate.rate),
-        },
-      });
-    }
-
-    res.redirect("/policy");
-  } catch (err) {
-    console.error("Policy creation error:", err);
-    res.status(500).render("error", { message: "Failed to create policy" });
-  }
-});
 module.exports = router;
