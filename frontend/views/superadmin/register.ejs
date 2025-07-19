@@ -1,18 +1,35 @@
-
+<h1>Register New User</h1>
 <form action="/superadmin/register" method="POST">
-    <label>Name:</label><input type="text" name="name" required></br>
-    <label>Email:</label><input type="text" name="email" required></br>
-    <label>Password:</label><input type="password" name="password" required></br>
-    <label for="role">Role:</label>
-    <select name="role" id="role" required>
-        <option value="admin">Admin</option>
-        <option value="agent">Agent</option>
-    </select>
-    <label for="rank_id">Rank:</label>
-    <select name="rank_id" id="rank_id" required>
-        <% ranks.forEach(rank => { %>
-            <option value="<%= rank.id %>"><%= rank.role_name %></option>
-        <% }); %>
-    </select>
-    <button type="submit">Register</button>
+  <label>Name:</label>
+  <input type="text" name="name" required />
+
+  <label>Email:</label>
+  <input type="email" name="email" required />
+
+  <label>Password:</label>
+  <input type="password" name="password" required />
+
+  <label>Role:</label>
+  <select name="role" required>
+    <option value="agent">Agent</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <label>Rank:</label>
+  <select name="rankId" required>
+    <% ranks.forEach(function(rank) { %>
+    <option value="<%= rank.id %>"><%= rank.role_name %></option>
+    <% }); %>
+  </select>
+
+  <label>Recruiter:</label>
+  <select name="recruiterId" required>
+    <% recruiters.forEach(function(user) { %>
+    <option value="<%= user.id %>">
+      <%= user.name %> (ID: <%= user.id %>)
+    </option>
+    <% }); %>
+  </select>
+
+  <button type="submit">Register</button>
 </form>

@@ -3,21 +3,16 @@ const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const bcrypt = require("bcrypt");
+const authorizeRoles = require("../middleware/roleGuard").authorizeRoles;
+const redirectByRole = require("../services/roleRedirect");
 
 // Login page
 router.get("/login", (req, res) => {
   if (req.session.user) {
     const role = req.session.user.role;
 
-    if (role === "superadmin") {
-      return res.redirect("/dashboard/superadmin");
-    } else if (role === "admin") {
-      return res.redirect("/dashboard/admin");
-    } else {
-      return res.redirect("/dashboard/agent");
-    }
+    return res.redirect(redirectByRole(role));
   }
-
   res.render("auth/login");
 });
 
@@ -30,7 +25,7 @@ router.post("/login", async (req, res) => {
       where: {
         email,
         can_login: true,
-        status: "active", // Optional, for extra safety
+        status: "active",
       },
     });
 
@@ -62,13 +57,7 @@ router.post("/login", async (req, res) => {
         }
 
         // Redirect based on role
-        if (user.role === "superadmin") {
-          res.redirect("/dashboard/superadmin");
-        } else if (user.role === "admin") {
-          res.redirect("/dashboard/admin");
-        } else {
-          res.redirect("/dashboard/agent");
-        }
+        res.redirect(redirectByRole(user.role));
       });
     });
   } catch (err) {

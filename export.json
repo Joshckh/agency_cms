@@ -1,0 +1,68 @@
+[
+  {
+    "id": 2,
+    "name": "Joshua",
+    "email": "Joshua@gmail.com",
+    "password_hash": "$2b$10$skmNc6tE.nvzFyXqmVy8mOBFD80eXzLHZ8dCZUiCZiEF6fMNtvEZi",
+    "role": "admin",
+    "rank_id": 2,
+    "status": "active",
+    "can_login": true,
+    "recruiter_id": 1
+  },
+  {
+    "id": 3,
+    "name": "John",
+    "email": "John@gmail.com",
+    "password_hash": "$2b$10$KdU7k4XUw.b9TW4z4SXUYeNqeYD8hEgWgahOAtw7jdi6Q/vp4l5tS",
+    "role": "agent",
+    "rank_id": 1,
+    "status": "active",
+    "can_login": true,
+    "recruiter_id": 2
+  },
+  {
+    "id": 4,
+    "name": "James",
+    "email": "asd@asd",
+    "password_hash": "$2b$10$XvIXGLzvO7WmKSLLcgTPy.Cl2MyX.mLcGoxqJE/sYS4yKURRnrSI.",
+    "role": "agent",
+    "rank_id": 1,
+    "status": "active",
+    "can_login": true,
+    "recruiter_id": 3
+  },
+  {
+    "id": 1,
+    "name": "Super Admin",
+    "email": "asd",
+    "password_hash": "$2b$10$rlBfIaiPyj8FJJtRoU.cX.x9F/ojikWj9um4qZlnfcw4mTQOcRSQW",
+    "role": "superadmin",
+    "rank_id": 3,
+    "status": "active",
+    "can_login": true,
+    "recruiter_id": null
+  },
+  {
+    "id": 6,
+    "name": "Ben",
+    "email": "ben@asd",
+    "password_hash": "$2b$10$2/cQPEsI1M8sfbsqtuJv.ODOITFRQLY5RKKeBlZUcwguXpouBDx8C",
+    "role": "agent",
+    "rank_id": null,
+    "status": "inactive",
+    "can_login": false,
+    "recruiter_id": 1
+  },
+  {
+    "id": 7,
+    "name": "Todo",
+    "email": "a@asd",
+    "password_hash": "$2b$10$Cs8VEswO3Noc.sfct3x4a.epb4KODrHp501BWNxuHNPhAZPtz5eOi",
+    "role": "agent",
+    "rank_id": 2,
+    "status": "active",
+    "can_login": true,
+    "recruiter_id": 4
+  }
+]

@@ -23,67 +23,74 @@ async function distributeRecursiveCommissions(
   premium,
   policyType
 ) {
-  let currentUser = await prisma.users.findUnique({
-    where: { id: userId },
-    include: { recruiter: true },
-  });
-
   const visited = new Set();
-  let level = 0;
 
-  while (currentUser && !visited.has(currentUser.id)) {
-    visited.add(currentUser.id);
+  async function walk(currentUserId, isFirst = true) {
+    if (!currentUserId || visited.has(currentUserId)) return;
+    visited.add(currentUserId);
 
-    const commissionRate = await prisma.commission_rates.findFirst({
+    const user = await prisma.users.findUnique({
+      where: { id: currentUserId },
+      include: { ranks: true }, // rank needed for rates
+    });
+
+    if (!user || !user.rank_id) return;
+
+    const rate = await prisma.commission_rates.findFirst({
       where: {
-        rank_id: currentUser.rank_id,
+        rank_id: user.rank_id,
         policy_type: policyType,
       },
     });
 
-    if (commissionRate) {
-      const rateToUse =
-        level === 0
-          ? commissionRate.primary_rate
-          : commissionRate.secondary_rate;
-      if (rateToUse) {
-        await prisma.commissions.create({
-          data: {
-            user_id: currentUser.id,
-            policy_id: policyId,
-            amount: calculateCommission(premium, rateToUse),
-            commission_type: level === 0 ? "primary" : "secondary",
-          },
-        });
-      }
-    }
+    if (!rate) return;
 
-    currentUser = currentUser.recruiter;
-    level++;
+    const commissionAmount = isFirst
+      ? (premium * rate.primary_rate) / 100
+      : (premium * rate.secondary_rate) / 100;
+
+    await prisma.commissions.create({
+      data: {
+        user_id: user.id,
+        policy_id: policyId,
+        amount: commissionAmount.toFixed(2),
+        commission_type: isFirst ? "primary" : "secondary",
+      },
+    });
+
+    // Recurse to recruiter
+    if (user.recruiter_id !== null) {
+      await walk(user.recruiter_id, false);
+    }
   }
 
-  // Final fallback to agency (user_id = 1) if not already included
-  if (!visited.has(1)) {
-    const agency = await prisma.users.findUnique({ where: { id: 1 } });
+  await walk(userId);
 
+  // Finally add the agency (user ID 1) if not visited yet
+  if (!visited.has(1)) {
     const agencyRate = await prisma.commission_rates.findFirst({
       where: {
-        rank_id: agency.rank_id,
+        rank_id: 3, // Assuming rank_id: 3 is for agency
         policy_type: policyType,
       },
     });
 
-    if (agencyRate?.secondary_rate) {
+    if (agencyRate) {
+      const agencyAmount = (premium * agencyRate.secondary_rate) / 100;
       await prisma.commissions.create({
         data: {
           user_id: 1,
           policy_id: policyId,
-          amount: calculateCommission(premium, agencyRate.secondary_rate),
+          amount: agencyAmount.toFixed(2),
           commission_type: "secondary",
         },
       });
     }
   }
+
+  console.log("==== COMMISSION CHAIN START ====");
+  console.log("Visited IDs:", [...visited]);
+  console.log("==== COMMISSION CHAIN END ====");
 }
 
 /**
