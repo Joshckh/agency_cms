@@ -1,18 +1,23 @@
+// routes/dashboard.js
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");
-const {
-  ensureAuthenticated,
-  ensureAdmin,
-  ensureSuperadmin,
-} = require("../middleware/auth");
+const { ensureAuthenticated } = require("../middleware/auth");
 
-router.get("/superadmin", ensureAuthenticated, async (req, res) => {
-  try {
-    res.render("dashboard/superadmin", { user: req.session.user });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+router.get("/", ensureAuthenticated, (req, res) => {
+  const role = req.session.user.role;
+
+  switch (role) {
+    case "superadmin":
+      return res.render("dashboard/superadmin_dashboard", {
+        user: req.session.user,
+      });
+    case "admin":
+      return res.render("dashboard/admin_dashboard", {
+        user: req.session.user,
+      });
+    case "user":
+    default:
+      return res.render("dashboard/user_dashboard", { user: req.session.user });
   }
 });
 

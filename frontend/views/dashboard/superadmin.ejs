@@ -1,10 +1,14 @@
-<h1>HELlo Joshua</h1>
-<%= JSON.stringify(user); %>
-<a href="/client">client</a>
-<a href="/policy">policy</a>
-<a href="../superadmin/ranks">Create Rank</a><br />
-<a href="../superadmin/commission-rates">Add Commission Rate</a>
-<a href="../superadmin/users">Users</a>
-<a href="../superadmin/register">Register</a>
+<%- include("../partials/header", { title: "Superadmin Dashboard", user: user })
+%>
 
-<a href="/auth/logout">Logout</a>
+<h1>Superadmin Dashboard</h1>
+
+<ul>
+  <li><a href="/user">Manage Users</a></li>
+  <li><a href="/client">Manage Clients</a></li>
+  <li><a href="/policy">Manage Policies</a></li>
+  <li><a href="/commission">View All Commissions</a></li>
+  <li><a href="/reports">View Reports</a></li>
+</ul>
+
+<%- include('../partials/footer') %>

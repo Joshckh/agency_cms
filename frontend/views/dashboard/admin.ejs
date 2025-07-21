@@ -1,3 +1,11 @@
-<h1>HELlo Admin</h1>
-<%= JSON.stringify(user); %>
-<a href="/logout">Logout</a>
+<%- include("../partials/header", { title: "Admin Dashboard", user: user }) %>
+
+<h1>Admin Dashboard</h1>
+
+<ul>
+  <li><a href="/client">Manage Clients</a></li>
+  <li><a href="/policy">Manage Policies</a></li>
+  <li><a href="/commission">View Commissions</a></li>
+</ul>
+
+<%- include('../partials/footer') %>

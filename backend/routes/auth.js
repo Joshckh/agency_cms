@@ -3,20 +3,21 @@ const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const bcrypt = require("bcrypt");
-const authorizeRoles = require("../middleware/roleGuard").authorizeRoles;
 const redirectByRole = require("../services/roleRedirect");
 
-// Login page
+// GET: Login page
 router.get("/login", (req, res) => {
   if (req.session.user) {
-    const role = req.session.user.role;
-
-    return res.redirect(redirectByRole(role));
+    return res.redirect(redirectByRole(req.session.user.role));
   }
-  res.render("auth/login");
+
+  res.render("auth/login", {
+    title: "Login",
+    user: null,
+  });
 });
 
-// Handle login
+// POST: Handle login form
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -30,18 +31,30 @@ router.post("/login", async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).send("Invalid email or password");
+      return res.status(400).render("auth/login", {
+        title: "Login",
+        user: null,
+        error: "Invalid email or password",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(400).send("Invalid email or password");
+      return res.status(400).render("auth/login", {
+        title: "Login",
+        user: null,
+        error: "Invalid email or password",
+      });
     }
 
     req.session.regenerate((err) => {
       if (err) {
         console.error("Session regeneration error:", err);
-        return res.status(500).send("Login failed");
+        return res.status(500).render("auth/login", {
+          title: "Login",
+          user: null,
+          error: "Login failed. Please try again.",
+        });
       }
 
       req.session.user = {
@@ -53,28 +66,35 @@ router.post("/login", async (req, res) => {
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
-          return res.status(500).send("Login failed");
+          return res.status(500).render("auth/login", {
+            title: "Login",
+            user: null,
+            error: "Login failed. Please try again.",
+          });
         }
 
-        // Redirect based on role
-        res.redirect(redirectByRole(user.role));
+        return res.redirect(redirectByRole(user.role));
       });
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).send("Server error");
+    res.status(500).render("auth/login", {
+      title: "Login",
+      user: null,
+      error: "Unexpected server error. Please try again later.",
+    });
   }
 });
 
-// Logout
+// GET: Logout
 router.get("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error("Session destroy error:", err);
-      return res.status(500).send("Logout failed");
+      return res.status(500).send("Logout failed.");
     }
 
-    res.clearCookie("connect.sid"); // Clear session cookie
+    res.clearCookie("connect.sid");
     res.redirect("/login");
   });
 });
